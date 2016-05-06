@@ -5856,7 +5856,7 @@ void process_next_command() {
 	if(tool_mode != TOOL_MODE_3DP){
 		int sensitive_3DP_G[] = SENSITIVE_3DP_G;
 		for (uint8_t i = 0; i < COUNT(sensitive_3DP_G); i++) {
-		  if (sensitive_3DP_M[i] == codenum) {
+		  if (sensitive_3DP_G[i] == codenum) {
 			break;
 		  }
 		}

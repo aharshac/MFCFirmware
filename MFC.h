@@ -15,3 +15,5 @@
 }
 
 #define SENSITIVE_3DP_G { 10, 11}
+
+#endif // MFC_H
