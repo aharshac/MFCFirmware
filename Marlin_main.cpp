@@ -50,6 +50,7 @@
 #include "pins_arduino.h"
 #include "math.h"
 #include "buzzer.h"
+#include "MFC.h"
 
 #if ENABLED(USE_WATCHDOG)
   #include "watchdog.h"
@@ -103,6 +104,9 @@
  *
  * M0   - Unconditional stop - Wait for user to press a button on the LCD (Only if ULTRA_LCD is enabled)
  * M1   - Same as M0
+ * M3   - Tool CW
+ * M4   - Tool CCW
+ * M5   - Tool OFF
  * M17  - Enable/Power all stepper motors
  * M18  - Disable all stepper motors; same as M84
  * M20  - List SD card
@@ -426,6 +430,18 @@ bool target_direction;
 #if ENABLED(PID_ADD_EXTRUSION_RATE)
   int lpq_len = 20;
 #endif
+
+
+//===========================================================================
+//================================ MFC ======================================
+//===========================================================================
+/*/
+0 -	3DP
+1 -	Laser
+2 - Mill
+*/
+static int tool_mode = TOOL_MODE_3DP;
+
 
 //===========================================================================
 //================================ Functions ================================
@@ -3335,6 +3351,139 @@ inline void gcode_G92() {
 #endif // ULTIPANEL
 
 /**
+ * M1001: 3DP Mode
+ */
+inline void gcode_M1001() {
+	tool_mode == TOOL_MODE_3DP;
+	enable_e0();
+	
+	pinMode(PIN_LASER_PWM, OUTPUT);
+	pinMode(PIN_MILL_PWM, OUTPUT);
+	pinMode(PIN_MILL_DIR1, OUTPUT);
+	pinMode(PIN_MILL_DIR2, OUTPUT);
+	
+	digitalWrite(PIN_LASER_PWM, LOW);
+	digitalWrite(PIN_MILL_PWM, LOW);
+	digitalWrite(PIN_MILL_DIR1, LOW);
+	digitalWrite(PIN_MILL_DIR2, LOW);
+}
+
+
+/**
+ * M1002: Laser Mode
+ */
+inline void gcode_M1002() {
+	tool_mode == TOOL_MODE_LASER;
+	
+	disable_e0();
+	
+	pinMode(PIN_LASER_PWM, OUTPUT);
+	pinMode(PIN_MILL_PWM, OUTPUT);
+	pinMode(PIN_MILL_DIR1, OUTPUT);
+	pinMode(PIN_MILL_DIR2, OUTPUT);
+	
+	digitalWrite(PIN_LASER_PWM, LOW);
+	digitalWrite(PIN_MILL_PWM, LOW);
+	digitalWrite(PIN_MILL_DIR1, LOW);
+	digitalWrite(PIN_MILL_DIR2, LOW);
+}
+
+
+/**
+ * M1002: Mill Mode
+ */
+inline void gcode_M1003() {
+	tool_mode == TOOL_MODE_MILL;
+	
+	disable_e0();
+	
+	pinMode(PIN_LASER_PWM, OUTPUT);
+	pinMode(PIN_MILL_PWM, OUTPUT);
+	pinMode(PIN_MILL_DIR1, OUTPUT);
+	pinMode(PIN_MILL_DIR2, OUTPUT);
+	
+	digitalWrite(PIN_LASER_PWM, LOW);
+	digitalWrite(PIN_MILL_PWM, LOW);
+	digitalWrite(PIN_MILL_DIR1, LOW);
+	digitalWrite(PIN_MILL_DIR2, LOW);
+}
+
+
+
+/**
+ * M3: Tool CW
+ */
+inline void gcode_M3() {
+	if(tool_mode == TOOL_MODE_3DP)
+		return;
+		
+  if (code_seen('S')) {
+	pinMode(PIN_LASER_PWM, OUTPUT);
+	pinMode(PIN_MILL_PWM, OUTPUT);
+	pinMode(PIN_MILL_DIR1, OUTPUT);
+	pinMode(PIN_MILL_DIR2, OUTPUT);
+  
+    int speed = code_value_short();
+		
+	if(tool_mode == TOOL_MODE_LASER){
+		analogWrite(PIN_LASER_PWM, speed);
+	}
+	
+	if(tool_mode == TOOL_MODE_MILL){
+		analogWrite(PIN_MILL_PWM, speed);
+		digitalWrite(PIN_MILL_DIR1, HIGH);
+		digitalWrite(PIN_MILL_DIR2, LOW);
+	}
+  } // code_seen('S')
+}
+
+/**
+ * M4: Tool CCW
+ */
+inline void gcode_M4() {
+	if(tool_mode == TOOL_MODE_3DP)
+		return;
+
+  if (code_seen('S')) {
+	pinMode(PIN_LASER_PWM, OUTPUT);
+	pinMode(PIN_MILL_PWM, OUTPUT);
+	pinMode(PIN_MILL_DIR1, OUTPUT);
+	pinMode(PIN_MILL_DIR2, OUTPUT);
+  
+    int speed = code_value_short();
+	
+	if(tool_mode == TOOL_MODE_LASER){
+		analogWrite(PIN_LASER_PWM, speed);
+	}
+	
+	if(tool_mode == TOOL_MODE_MILL){
+		analogWrite(PIN_MILL_PWM, speed);
+		digitalWrite(PIN_MILL_DIR1, LOW);
+		digitalWrite(PIN_MILL_DIR2, HIGH);
+	}
+  } // code_seen('S')
+}
+
+/**
+ * M5: Tool OFF
+ */
+inline void gcode_M5() {
+	if(tool_mode == TOOL_MODE_3DP)
+		return;
+	
+	pinMode(PIN_LASER_PWM, OUTPUT);
+	pinMode(PIN_MILL_PWM, OUTPUT);
+	pinMode(PIN_MILL_DIR1, OUTPUT);
+	pinMode(PIN_MILL_DIR2, OUTPUT);
+	
+	digitalWrite(PIN_LASER_PWM, LOW);
+	digitalWrite(PIN_MILL_PWM, LOW);
+	digitalWrite(PIN_MILL_DIR1, LOW);
+	digitalWrite(PIN_MILL_DIR2, LOW);
+}
+
+
+/**
  * M17: Enable power on all stepper motors
  */
 inline void gcode_M17() {
@@ -5703,7 +5852,16 @@ void process_next_command() {
 
   // Handle a known G, M, or T
   switch (command_code) {
-    case 'G': switch (codenum) {
+    case 'G': 
+	if(tool_mode != TOOL_MODE_3DP){
+		int sensitive_3DP_G[] = SENSITIVE_3DP_G;
+		for (uint8_t i = 0; i < COUNT(sensitive_3DP_G); i++) {
+		  if (sensitive_3DP_M[i] == codenum) {
+			break;
+		  }
+		}
+	}
+	switch (codenum) {
 
       // G0, G1
       case 0:
@@ -5775,7 +5933,17 @@ void process_next_command() {
     }
     break;
 
-    case 'M': switch (codenum) {
+    case 'M': 
+	// Check if not 3DP mode
+	if(tool_mode != TOOL_MODE_3DP){
+		int sensitive_3DP_M[] = SENSITIVE_3DP_M;
+		for (uint8_t i = 0; i < COUNT(sensitive_3DP_M); i++) {
+		  if (sensitive_3DP_M[i] == codenum) {
+			break;
+		  }
+		}
+	}
+	switch (codenum) {
       #if ENABLED(ULTIPANEL)
         case 0: // M0 - Unconditional stop - Wait for user button press on LCD
         case 1: // M1 - Conditional stop - Wait for user button press on LCD
@@ -5783,6 +5951,30 @@ void process_next_command() {
           break;
       #endif // ULTIPANEL
 
+		case 1001:	//	3DP mode
+			gcode_M1001();
+			break;
+			
+		case 1002:	//	Laser Mode
+			gcode_M1002();
+			break;
+			
+		case 1003:	//	Mill mode
+			gcode_M1003();
+			break;
+		
+		case 3:	//	Tool CW
+			gcode_M3();
+			break;
+		
+		case 4:	//	Tool CCW
+			gcode_M4();
+			break;
+			
+		case 5:	//	Tool OFF
+			gcode_M5();
+			break;
+	  
       case 17:
         gcode_M17();
         break;
