@@ -28,14 +28,36 @@
 
 #define LARGE_FLASH true
 
-#ifdef IS_RAMPS_14
+//	Original servo config
+/* #ifdef IS_RAMPS_14
   #define SERVO0_PIN       11
 #else
   #define SERVO0_PIN        7 // RAMPS_13 // Will conflict with BTN_EN2 on LCD_I2C_VIKI
 #endif
 #define SERVO1_PIN          6
 #define SERVO2_PIN          5
-#define SERVO3_PIN          4
+#define SERVO3_PIN          4 */
+
+//	Failsafe for servo pins used for tools
+#ifdef IS_RAMPS_14
+  #define SERVO0_PIN       -1
+#else
+  #define SERVO0_PIN       -1 // RAMPS_13 // Will conflict with BTN_EN2 on LCD_I2C_VIKI
+#endif
+#define SERVO1_PIN         -1
+#define SERVO2_PIN         -1
+#define SERVO3_PIN         -1
+
+// Custom pins for tools
+#ifdef IS_RAMPS_14
+  #define PIN_LASER_PWM       11
+#else
+  #define PIN_LASER_PWM        7 // RAMPS_13 // Will conflict with BTN_EN2 on LCD_I2C_VIKI
+#endif
+#define PIN_MILL_PWM           6
+#define PIN_MILL_DIR1          5
+#define PIN_MILL_DIR2          4
+
 
 #define X_STEP_PIN         54
 #define X_DIR_PIN          55
