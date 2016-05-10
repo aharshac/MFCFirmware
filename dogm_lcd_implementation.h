@@ -34,6 +34,7 @@
 #include "ultralcd.h"
 #include "ultralcd_st7920_u8glib_rrd.h"
 #include "Configuration.h"
+#include "MFC.h"
 
 #if DISABLED(MAPPER_C2C3) && DISABLED(MAPPER_NON) && ENABLED(USE_BIG_EDIT_FONT)
   #undef USE_BIG_EDIT_FONT
@@ -237,7 +238,13 @@ static void lcd_implementation_init() {
     u8g.firstPage();
     do {
       if (show_bootscreen) {
-        u8g.drawBitmapP(offx, offy, START_BMPBYTEWIDTH, START_BMPHEIGHT, start_bmp);
+		u8g.setFont(u8g_font_fub30);
+        int w = u8g.getStrWidth(MFC_TITLE);
+        //int h = (u8g.getFontAscent()+u8g.getFontDescent())/2;
+        int h = (u8g.getHeight())/2;
+		u8g.drawStr((128-w)/2, (64+h)/2, MFC_TITLE); 
+		
+        /* u8g.drawBitmapP(offx, offy, START_BMPBYTEWIDTH, START_BMPHEIGHT, start_bmp);
         lcd_setFont(FONT_MENU);
         #ifndef STRING_SPLASH_LINE2
           u8g.drawStr(txt1X, u8g.getHeight() - DOG_CHAR_HEIGHT, STRING_SPLASH_LINE1);
@@ -245,12 +252,12 @@ static void lcd_implementation_init() {
           int txt2X = (u8g.getWidth() - (sizeof(STRING_SPLASH_LINE2) - 1) * DOG_CHAR_WIDTH) / 2;
           u8g.drawStr(txt1X, u8g.getHeight() - DOG_CHAR_HEIGHT * 3 / 2, STRING_SPLASH_LINE1);
           u8g.drawStr(txt2X, u8g.getHeight() - DOG_CHAR_HEIGHT * 1 / 2, STRING_SPLASH_LINE2);
-        #endif
+        #endif */
       }
     } while (u8g.nextPage());
 
     if (show_bootscreen) {
-      delay(1000);
+      delay(1500);
       show_bootscreen = false;
     }
   #endif
