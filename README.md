@@ -2,7 +2,7 @@
 Marlin Firmware modified for Multi-Function CNC Machine
 
 __Based on [The Marlin Firmware](https://github.com/MarlinFirmware/Marlin).__
-<img align="top" width=175 src="Documentation/Logo/Marlin%20Logo%20GitHub.png" />
+<img align="top" width=175 src="https://github.com/MarlinFirmware/Marlin/raw/RC/Documentation/Logo/Marlin%20Logo%20GitHub.png" />
 
 ## Project Details
 
