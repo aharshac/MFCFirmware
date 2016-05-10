@@ -433,17 +433,6 @@ bool target_direction;
 
 
 //===========================================================================
-//================================ MFC ======================================
-//===========================================================================
-/*/
-0 -	3DP
-1 -	Laser
-2 - Mill
-*/
-static int tool_mode = TOOL_MODE_3DP;
-
-
-//===========================================================================
 //================================ Functions ================================
 //===========================================================================
 
@@ -737,6 +726,9 @@ void setup() {
     pinMode(STAT_LED_BLUE, OUTPUT);
     digitalWrite(STAT_LED_BLUE, LOW); // turn it off
   #endif
+  
+	toolSetup();
+	toolOff();
 }
 
 /**
@@ -2115,9 +2107,15 @@ static void homeaxis(AxisEnum axis) {
  */
 void gcode_get_destination() {
   for (int i = 0; i < NUM_AXIS; i++) {
-    if (code_seen(axis_codes[i]))
+    if (code_seen(axis_codes[i])){
+		if(tool_mode != TOOL_MODE_3DP && axis_codes[i] == 'E'){
+			destination[i] = current_position[i];
+			SERIAL_ECHOLNPGM(MSG_ERR_WRONG_MODE);
+			continue;
+		}
+	
       destination[i] = code_value() + (axis_relative_modes[i] || relative_mode ? current_position[i] : 0);
-    else
+    }else
       destination[i] = current_position[i];
   }
   if (code_seen('F')) {
@@ -3353,39 +3351,21 @@ inline void gcode_G92() {
 /**
  * M1001: 3DP Mode
  */
-inline void gcode_M1001() {
-	tool_mode == TOOL_MODE_3DP;
-	enable_e0();
-	
-	pinMode(PIN_LASER_PWM, OUTPUT);
-	pinMode(PIN_MILL_PWM, OUTPUT);
-	pinMode(PIN_MILL_DIR1, OUTPUT);
-	pinMode(PIN_MILL_DIR2, OUTPUT);
-	
-	digitalWrite(PIN_LASER_PWM, LOW);
-	digitalWrite(PIN_MILL_PWM, LOW);
-	digitalWrite(PIN_MILL_DIR1, LOW);
-	digitalWrite(PIN_MILL_DIR2, LOW);
+inline void gcode_M1001(){
+	tool_mode = TOOL_MODE_3DP;
+	toolSetup();
+	toolOff();
+	SERIAL_ECHOLNPGM(MSG_3DP);
 }
-
 
 /**
  * M1002: Laser Mode
  */
 inline void gcode_M1002() {
-	tool_mode == TOOL_MODE_LASER;
-	
-	disable_e0();
-	
-	pinMode(PIN_LASER_PWM, OUTPUT);
-	pinMode(PIN_MILL_PWM, OUTPUT);
-	pinMode(PIN_MILL_DIR1, OUTPUT);
-	pinMode(PIN_MILL_DIR2, OUTPUT);
-	
-	digitalWrite(PIN_LASER_PWM, LOW);
-	digitalWrite(PIN_MILL_PWM, LOW);
-	digitalWrite(PIN_MILL_DIR1, LOW);
-	digitalWrite(PIN_MILL_DIR2, LOW);
+	tool_mode = TOOL_MODE_LASER;
+	toolSetup();
+	toolOff();
+	SERIAL_ECHOLNPGM(MSG_LASER);
 }
 
 
@@ -3393,94 +3373,98 @@ inline void gcode_M1002() {
  * M1002: Mill Mode
  */
 inline void gcode_M1003() {
-	tool_mode == TOOL_MODE_MILL;
-	
-	disable_e0();
-	
-	pinMode(PIN_LASER_PWM, OUTPUT);
-	pinMode(PIN_MILL_PWM, OUTPUT);
-	pinMode(PIN_MILL_DIR1, OUTPUT);
-	pinMode(PIN_MILL_DIR2, OUTPUT);
-	
-	digitalWrite(PIN_LASER_PWM, LOW);
-	digitalWrite(PIN_MILL_PWM, LOW);
-	digitalWrite(PIN_MILL_DIR1, LOW);
-	digitalWrite(PIN_MILL_DIR2, LOW);
+	tool_mode = TOOL_MODE_MILL;
+	toolSetup();
+	toolOff();
+	SERIAL_ECHOLNPGM(MSG_MILL);
 }
-
 
 
 /**
  * M3: Tool CW
  */
 inline void gcode_M3() {
-	if(tool_mode == TOOL_MODE_3DP)
+	if(tool_mode == TOOL_MODE_3DP){
+		SERIAL_ECHOLNPGM(MSG_ERR_WRONG_MODE);
 		return;
-		
-  if (code_seen('S')) {
-	pinMode(PIN_LASER_PWM, OUTPUT);
-	pinMode(PIN_MILL_PWM, OUTPUT);
-	pinMode(PIN_MILL_DIR1, OUTPUT);
-	pinMode(PIN_MILL_DIR2, OUTPUT);
-  
-    int speed = code_value_short();
-		
-	if(tool_mode == TOOL_MODE_LASER){
-		analogWrite(PIN_LASER_PWM, speed);
 	}
-	
+		
+	toolSetup();
+  
+	if(tool_mode == TOOL_MODE_LASER){
+		digitalWrite(PIN_LASER_PWM, HIGH);
+	}
+  
 	if(tool_mode == TOOL_MODE_MILL){
+		int speed = 255;
+		if (code_seen('S')){
+			speed = code_value_short();
+		}
+		
+		if (speed < 0){
+			speed = 0;
+		}
+		
+		if (speed > 255){
+			speed = 255;
+		}
+	
+		digitalWrite(PIN_MILL_PWM, speed);
 		analogWrite(PIN_MILL_PWM, speed);
 		digitalWrite(PIN_MILL_DIR1, HIGH);
 		digitalWrite(PIN_MILL_DIR2, LOW);
 	}
-  } // code_seen('S')
 }
 
 /**
  * M4: Tool CCW
  */
 inline void gcode_M4() {
-	if(tool_mode == TOOL_MODE_3DP)
+	if(tool_mode == TOOL_MODE_3DP){
+		SERIAL_ECHOLNPGM(MSG_ERR_WRONG_MODE);
 		return;
-
-  if (code_seen('S')) {
-	pinMode(PIN_LASER_PWM, OUTPUT);
-	pinMode(PIN_MILL_PWM, OUTPUT);
-	pinMode(PIN_MILL_DIR1, OUTPUT);
-	pinMode(PIN_MILL_DIR2, OUTPUT);
-  
-    int speed = code_value_short();
-	
-	if(tool_mode == TOOL_MODE_LASER){
-		analogWrite(PIN_LASER_PWM, speed);
 	}
-	
+		
+	toolSetup();
+  
+	if(tool_mode == TOOL_MODE_LASER){
+		digitalWrite(PIN_LASER_PWM, HIGH);
+	}
+  
 	if(tool_mode == TOOL_MODE_MILL){
+		int speed = 255;
+		if (code_seen('S')){
+			speed = code_value_short();
+		}
+		
+		if (speed < 0){
+			speed = 0;
+		}
+		
+		if (speed > 255){
+			speed = 255;
+		}
+	
+		digitalWrite(PIN_MILL_PWM, speed);
 		analogWrite(PIN_MILL_PWM, speed);
 		digitalWrite(PIN_MILL_DIR1, LOW);
 		digitalWrite(PIN_MILL_DIR2, HIGH);
 	}
-  } // code_seen('S')
 }
 
 /**
  * M5: Tool OFF
  */
 inline void gcode_M5() {
-	if(tool_mode == TOOL_MODE_3DP)
+	if(tool_mode == TOOL_MODE_3DP){
+		SERIAL_ECHOLNPGM(MSG_ERR_WRONG_MODE);
 		return;
+	}
 	
-	pinMode(PIN_LASER_PWM, OUTPUT);
-	pinMode(PIN_MILL_PWM, OUTPUT);
-	pinMode(PIN_MILL_DIR1, OUTPUT);
-	pinMode(PIN_MILL_DIR2, OUTPUT);
-	
-	digitalWrite(PIN_LASER_PWM, LOW);
-	digitalWrite(PIN_MILL_PWM, LOW);
-	digitalWrite(PIN_MILL_DIR1, LOW);
-	digitalWrite(PIN_MILL_DIR2, LOW);
+	toolSetup();
+	toolOff();
 }
+
 
 
 /**
@@ -5853,13 +5837,10 @@ void process_next_command() {
   // Handle a known G, M, or T
   switch (command_code) {
     case 'G': 
-	if(tool_mode != TOOL_MODE_3DP){
-		int sensitive_3DP_G[] = SENSITIVE_3DP_G;
-		for (uint8_t i = 0; i < COUNT(sensitive_3DP_G); i++) {
-		  if (sensitive_3DP_G[i] == codenum) {
-			break;
-		  }
-		}
+	// Check if mode-sensitive 3DP code
+	if(is_mode_sensitive_3DP_code(codenum)){
+		SERIAL_ECHOLNPGM(MSG_ERR_WRONG_MODE);
+		break;
 	}
 	switch (codenum) {
 
@@ -5934,14 +5915,10 @@ void process_next_command() {
     break;
 
     case 'M': 
-	// Check if not 3DP mode
-	if(tool_mode != TOOL_MODE_3DP){
-		int sensitive_3DP_M[] = SENSITIVE_3DP_M;
-		for (uint8_t i = 0; i < COUNT(sensitive_3DP_M); i++) {
-		  if (sensitive_3DP_M[i] == codenum) {
-			break;
-		  }
-		}
+	// Check if mode-sensitive 3DP code
+	if(is_mode_sensitive_3DP_code(codenum)){
+		SERIAL_ECHOLNPGM(MSG_ERR_WRONG_MODE);
+		break;
 	}
 	switch (codenum) {
       #if ENABLED(ULTIPANEL)

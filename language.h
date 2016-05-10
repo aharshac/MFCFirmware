@@ -65,7 +65,7 @@
   #define MACHINE_NAME "SAV MkI"
   #define SOURCE_CODE_URL "https://github.com/fmalpartida/Marlin/tree/SAV-MkI-config"
 #elif !defined(MACHINE_NAME)
-  #define MACHINE_NAME "3D Printer"
+  #define MACHINE_NAME "MFC"
 #endif
 
 #ifdef CUSTOM_MACHINE_NAME
