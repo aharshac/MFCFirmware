@@ -38,6 +38,6 @@ Mr. Vinayak Shetty
 
 ## Machine Details
 
-Work Volume = 300 * 300 * 150 cubic mm  
+Work Volume = 300 * 300 * 170 cubic mm  
 Drives = NEMA 17 stepper motors and M10 lead-screws  
 Work modes = 3D printing, Laser cutting, CNC drilling.  
